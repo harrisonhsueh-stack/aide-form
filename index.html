@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Daily Care Update</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, serif; min-height: 100vh; transition: background 0.4s; }
+  button { font-family: Georgia, serif; cursor: pointer; }
+  textarea, input { font-family: Georgia, serif; }
+
+  /* Header */
+  #header {
+    position: sticky; top: 0; z-index: 100;
+    padding: 12px 14px;
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .app-title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .header-controls { display: flex; gap: 6px; align-items: center; }
+  #lang-toggle { display: flex; border-radius: 8px; padding: 3px; }
+  .lang-btn { padding: 5px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 700; transition: all 0.15s; }
+  #shift-toggle { display: flex; border-radius: 12px; padding: 4px; }
+  .shift-btn {
+    flex: 1; padding: 11px 8px; border-radius: 9px; border: none;
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;
+  }
+
+  /* Body */
+  #body { padding: 14px 13px; max-width: 520px; margin: 0 auto; }
+
+  /* Section card */
+  .section {
+    border-radius: 16px; padding: 18px 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  .section-title {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-title .emoji { font-size: 17px; }
+  .field-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; margin-top: 13px; }
+  .field-label:first-of-type { margin-top: 0; }
+
+  /* Inputs */
+  textarea, input[type=text], input[type=date], input[type=time], input[type=number] {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    font-size: 15px; outline: none; resize: none; line-height: 1.5;
+  }
+  textarea { resize: none; }
+
+  /* Chips */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 9px 13px; border-radius: 20px;
+    font-size: 14px; font-weight: 500; transition: all 0.15s; white-space: nowrap;
+    border: 2px solid transparent;
+  }
+  .chip svg { display: none; }
+  .chip.active svg { display: inline; }
+
+  /* Rating */
+  .rating { display: flex; gap: 6px; }
+  .rating-btn {
+    flex: 1; padding: 11px 4px; border-radius: 10px;
+    font-size: 14px; font-weight: 700; transition: all 0.15s;
+    border: 2px solid transparent; line-height: 1.2;
+  }
+  .rating-sub { font-size: 9px; font-weight: 500; opacity: 0.9; margin-top: 2px; }
+
+  /* Submit */
+  .submit-btn {
+    width: 100%; padding: 16px; border-radius: 14px; border: none;
+    font-size: 17px; font-weight: 700; margin-bottom: 32px;
+    letter-spacing: 0.02em; transition: all 0.2s; color: #fff;
+  }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Success */
+  #success-view {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 70vh; gap: 20px;
+    padding: 24px; text-align: center;
+  }
+  #success-view.visible { display: flex; }
+  .success-emoji { font-size: 70px; }
+  .success-title { font-size: 24px; font-weight: 700; }
+  .success-msg { font-size: 16px; max-width: 280px; line-height: 1.7; }
+  .reset-btn {
+    margin-top: 12px; padding: 14px 32px; border-radius: 14px; border: none;
+    font-size: 16px; font-weight: 700; color: #fff;
+  }
+
+  #day-form, #night-form { display: none; }
+  #day-form.visible, #night-form.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="header-top">
+    <div class="app-title" id="app-title-text">Daily Care Update</div>
+    <div class="header-controls">
+      <div id="lang-toggle">
+        <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" id="btn-zh" onclick="setLang('zh')">中文</button>
+      </div>
+    </div>
+  </div>
+  <div id="shift-toggle">
+    <button class="shift-btn" id="btn-day" onclick="setMode('day')">☀️ <span id="label-day">Daytime Shift</span></button>
+    <button class="shift-btn" id="btn-night" onclick="setMode('night')">🌙 <span id="label-night">Nighttime Shift</span></button>
+  </div>
+</div>
+
+<div id="body">
+
+  <!-- SUCCESS VIEW -->
+  <div id="success-view">
+    <div class="success-emoji" id="success-emoji">☀️</div>
+    <div class="success-title" id="success-title">Update Submitted!</div>
+    <div class="success-msg" id="success-msg">Thank you. Harrison has been notified.</div>
+    <button class="reset-btn" id="reset-btn" onclick="resetForm()">Fill Out Another</button>
+  </div>
+
+  <!-- DAY FORM -->
+  <div id="day-form">
+    <!-- Shift Info -->
+    <div class="section" id="sec-day-info">
+      <div class="section-title"><span class="emoji">📋</span><span data-t="shiftInfo">Shift Info</span></div>
+      <div class="field-label" data-t="date">Date</div>
+      <input type="date" id="day-date"/>
+      <div class="field-label" data-t="aideName">Aide Name</div>
+      <textarea id="day-aide" rows="1" data-ph="aideNamePh"></textarea>
+    </div>
+    <!-- Mental -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🧠</span><span data-t="mentalSection">Mental Status</span></div>
+      <div class="field-label" data-t="mentalRateLabel">Rate her alertness & clarity</div>
+      <div class="rating" id="day-mental-rating"></div>
+      <div class="field-label" data-t="mentalNotesLabel">Notes</div>
+      <textarea id="day-mental-notes" rows="2" data-ph="mentalPh"></textarea>
+    </div>
+    <!-- Mood -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💛</span><span data-t="moodSection">Mood</span></div>
+      <div class="field-label" data-t="moodRateLabel">Rate her mood</div>
+      <div class="rating" id="day-mood-rating"></div>
+      <div class="field-label" data-t="moodNotesLabel">Notes</div>
+      <textarea id="day-mood-notes" rows="2" data-ph="moodPh"></textarea>
+    </div>
+    <!-- Meals -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🍽️</span><span data-t="mealsSection">Meals</span></div>
+      <div class="field-label" data-t="lunch">Lunch</div>
+      <textarea id="day-lunch" rows="2" data-ph="lunchPh"></textarea>
+      <div class="field-label" data-t="snacks">Snacks</div>
+      <textarea id="day-snacks" rows="2" data-ph="snacksPh"></textarea>
+      <div class="field-label" data-t="dinner">Dinner</div>
+      <textarea id="day-dinner" rows="2" data-ph="dinnerPh"></textarea>
+      <div class="field-label" data-t="appetiteLabel">Appetite & fluids</div>
+      <textarea id="day-appetite" rows="2" data-ph="appetitePh"></textarea>
+    </div>
+    <!-- Medication Taken -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💊</span><span data-t="medTakenSection">Medication</span></div>
+      <div class="field-label" data-t="medTakenLabel">Did she take her medication?</div>
+      <div class="chips">
+        <button class="chip" data-group="day-medtaken" data-val="yes" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="yes">✅ Yes</span></button>
+        <button class="chip" data-group="day-medtaken" data-val="no" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="no">❌ No</span></button>
+        <button class="chip" data-group="day-medtaken" data-val="refused" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="refused">🚫 Refused</span></button>
+      </div>
+      <div class="field-label" data-t="medNotesLabel">Notes</div>
+      <textarea id="day-med-notes" rows="2" data-ph="medNotesPh"></textarea>
+    </div>
+    <!-- Medication Status -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🔋</span><span data-t="medStatusSection">Medication Status</span></div>
+      <div class="field-label" data-t="medRefillLabel">List any medications running low or needing refill</div>
+      <textarea id="day-med-refill" rows="2" data-ph="medRefillPh"></textarea>
+    </div>
+    <!-- Toileting -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🚿</span><span data-t="toiletSection">Toileting</span></div>
+      <div class="field-label" data-t="urinationLabel">Urination</div>
+      <textarea id="day-urination" rows="2" data-ph="urinationPh"></textarea>
+      <div class="field-label" data-t="bowelLabel">Bowel movement?</div>
+      <div class="chips">
+        <button class="chip" data-group="day-bowel" data-val="yes" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="yes">✅ Yes</span></button>
+        <button class="chip" data-group="day-bowel" data-val="no" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="no">❌ No</span></button>
+      </div>
+      <div class="field-label" data-t="diaperLabel">Diaper changes</div>
+      <textarea id="day-diapers" rows="2" data-ph="diaperPh"></textarea>
+      <div class="field-label" data-t="toiletNotesLabel">Other notes</div>
+      <textarea id="day-toilet-notes" rows="2" data-ph="toiletNotesPh"></textarea>
+    </div>
+    <!-- Activities -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🚶</span><span data-t="activitiesSection">Activities</span></div>
+      <div class="field-label" data-t="activitiesLabel">Activities today (select all that apply)</div>
+      <div class="chips">
+        <button class="chip" data-group="day-activities" data-val="walking" onclick="toggleMulti(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="walking">🚶 Walking</span></button>
+        <button class="chip" data-group="day-activities" data-val="exercise" onclick="toggleMulti(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="exercise">💪 Exercise</span></button>
+        <button class="chip" data-group="day-activities" data-val="adultDayCare" onclick="toggleMulti(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="adultDayCare">🏛️ Adult Day Care</span></button>
+        <button class="chip" data-group="day-activities" data-val="cityTrips" onclick="toggleMulti(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="cityTrips">🚌 City Trip</span></button>
+      </div>
+      <div class="field-label" data-t="activityNotesLabel">Activity details & duration</div>
+      <textarea id="day-activity-notes" rows="2" data-ph="activityNotesPh"></textarea>
+    </div>
+    <!-- Communication -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💬</span><span data-t="commSection">Communication</span></div>
+      <div class="field-label" data-t="commLevelLabel">How communicative was she?</div>
+      <div class="chips">
+        <button class="chip" data-group="day-comm" data-val="silent" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="silent">🤫 Silent</span></button>
+        <button class="chip" data-group="day-comm" data-val="minimal" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="minimal">🔇 Minimal</span></button>
+        <button class="chip" data-group="day-comm" data-val="moderate" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="moderate">💬 Moderate</span></button>
+        <button class="chip" data-group="day-comm" data-val="talkative" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="talkative">🗣️ Talkative</span></button>
+      </div>
+      <div class="field-label" data-t="commNotesLabel">What did she talk about?</div>
+      <textarea id="day-comm-notes" rows="3" data-ph="commNotesPh"></textarea>
+    </div>
+    <!-- Laundry -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🧺</span><span data-t="laundrySection">Laundry Status</span></div>
+      <div class="field-label" data-t="laundryLabel">How is the laundry situation?</div>
+      <div class="chips">
+        <button class="chip" data-group="day-laundry" data-val="needed" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="laundryNeed">🧺 Needs to Be Done Soon</span></button>
+        <button class="chip" data-group="day-laundry" data-val="ok" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="laundryOk">✅ OK for Now</span></button>
+      </div>
+      <div class="field-label" data-t="laundryNotesLabel">Laundry notes (optional)</div>
+      <textarea id="day-laundry-notes" rows="2" data-ph="laundryNotesPh"></textarea>
+    </div>
+    <!-- Groceries -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🛒</span><span data-t="groceriesSection">Groceries & Supplies</span></div>
+      <div class="field-label" data-t="groceriesLabel">Any groceries or supplies needed?</div>
+      <textarea id="day-groceries" rows="3" data-ph="groceriesPh"></textarea>
+    </div>
+    <!-- Other -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">📝</span><span data-t="otherSection">Other Relevant Details</span></div>
+      <textarea id="day-other" rows="4" data-ph="otherPh"></textarea>
+    </div>
+    <button class="submit-btn" id="day-submit" onclick="submitForm('day')">☀️ Submit Daytime Update</button>
+  </div><!-- end day-form -->
+
+  <!-- NIGHT FORM -->
+  <div id="night-form">
+    <!-- Shift Info -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">📋</span><span data-t="shiftInfo">Shift Info</span></div>
+      <div class="field-label" data-t="date">Date</div>
+      <input type="date" id="night-date"/>
+      <div class="field-label" data-t="aideName">Aide Name</div>
+      <textarea id="night-aide" rows="1" data-ph="aideNamePh"></textarea>
+    </div>
+    <!-- Mental -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🧠</span><span data-t="mentalSection">Mental Status</span></div>
+      <div class="field-label" data-t="mentalRateLabel">Rate her alertness & clarity</div>
+      <div class="rating" id="night-mental-rating"></div>
+      <div class="field-label" data-t="mentalNotesLabel">Notes</div>
+      <textarea id="night-mental-notes" rows="2" data-ph="mentalPh"></textarea>
+    </div>
+    <!-- Mood -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💛</span><span data-t="moodSection">Mood</span></div>
+      <div class="field-label" data-t="moodRateLabel">Rate her mood</div>
+      <div class="rating" id="night-mood-rating"></div>
+      <div class="field-label" data-t="moodNotesLabel">Notes</div>
+      <textarea id="night-mood-notes" rows="2" data-ph="moodPh"></textarea>
+    </div>
+    <!-- Sleep -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🌙</span><span data-t="sleepSection">Sleep</span></div>
+      <div class="field-label" data-t="bedtimeLabel">Time she went to bed</div>
+      <input type="time" id="night-bedtime"/>
+      <div class="field-label" data-t="wakingsLabel">Times she woke up during the night</div>
+      <input type="number" id="night-wakings" min="0" max="99" placeholder="0"/>
+      <div class="field-label" data-t="aideWokeLabel">Times YOU woke her up to use the bathroom</div>
+      <input type="number" id="night-aide-woke" min="0" max="99" placeholder="0"/>
+      <div class="field-label" data-t="morningWakeLabel">Time she woke up in the morning</div>
+      <input type="time" id="night-wake-time"/>
+      <div class="field-label" data-t="sleepNotesLabel">Sleep quality notes</div>
+      <textarea id="night-sleep-notes" rows="3" data-ph="sleepNotesPh"></textarea>
+    </div>
+    <!-- Breakfast -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🍳</span><span data-t="mealsSection">Meals</span></div>
+      <div class="field-label" data-t="breakfast">Breakfast</div>
+      <textarea id="night-breakfast" rows="2" data-ph="breakfastPh"></textarea>
+      <div class="field-label" data-t="appetiteLabel">Appetite & fluids</div>
+      <textarea id="night-appetite" rows="2" data-ph="appetitePh"></textarea>
+    </div>
+    <!-- Medication Taken -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💊</span><span data-t="medTakenSection">Medication</span></div>
+      <div class="field-label" data-t="medTakenLabel">Did she take her medication?</div>
+      <div class="chips">
+        <button class="chip" data-group="night-medtaken" data-val="yes" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="yes">✅ Yes</span></button>
+        <button class="chip" data-group="night-medtaken" data-val="no" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="no">❌ No</span></button>
+        <button class="chip" data-group="night-medtaken" data-val="refused" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="refused">🚫 Refused</span></button>
+      </div>
+      <div class="field-label" data-t="medNotesLabel">Notes</div>
+      <textarea id="night-med-notes" rows="2" data-ph="medNotesPh"></textarea>
+    </div>
+    <!-- Medication Status -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🔋</span><span data-t="medStatusSection">Medication Status</span></div>
+      <div class="field-label" data-t="medRefillLabel">List any medications running low or needing refill</div>
+      <textarea id="night-med-refill" rows="2" data-ph="medRefillPh"></textarea>
+    </div>
+    <!-- Toileting -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🚿</span><span data-t="toiletSection">Toileting</span></div>
+      <div class="field-label" data-t="urinationLabel">Urination</div>
+      <textarea id="night-urination" rows="2" data-ph="urinationPh"></textarea>
+      <div class="field-label" data-t="bowelLabel">Bowel movement?</div>
+      <div class="chips">
+        <button class="chip" data-group="night-bowel" data-val="yes" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="yes">✅ Yes</span></button>
+        <button class="chip" data-group="night-bowel" data-val="no" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="no">❌ No</span></button>
+      </div>
+      <div class="field-label" data-t="diaperLabel">Diaper changes</div>
+      <textarea id="night-diapers" rows="2" data-ph="diaperPh"></textarea>
+      <div class="field-label" data-t="toiletNotesLabel">Other notes</div>
+      <textarea id="night-toilet-notes" rows="2" data-ph="toiletNotesPh"></textarea>
+    </div>
+    <!-- Morning Activities -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🌅</span><span data-t="morningActivitiesSection">Morning Activities</span></div>
+      <textarea id="night-morning-activities" rows="3" data-ph="morningActivitiesPh"></textarea>
+    </div>
+    <!-- Communication -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">💬</span><span data-t="commSection">Communication</span></div>
+      <div class="field-label" data-t="commLevelLabel">How communicative was she?</div>
+      <div class="chips">
+        <button class="chip" data-group="night-comm" data-val="silent" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="silent">🤫 Silent</span></button>
+        <button class="chip" data-group="night-comm" data-val="minimal" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="minimal">🔇 Minimal</span></button>
+        <button class="chip" data-group="night-comm" data-val="moderate" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="moderate">💬 Moderate</span></button>
+        <button class="chip" data-group="night-comm" data-val="talkative" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="talkative">🗣️ Talkative</span></button>
+      </div>
+      <div class="field-label" data-t="commNotesLabel">What did she talk about?</div>
+      <textarea id="night-comm-notes" rows="3" data-ph="commNotesPh"></textarea>
+    </div>
+    <!-- Laundry -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🧺</span><span data-t="laundrySection">Laundry Status</span></div>
+      <div class="field-label" data-t="laundryLabel">How is the laundry situation?</div>
+      <div class="chips">
+        <button class="chip" data-group="night-laundry" data-val="needed" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="laundryNeed">🧺 Needs to Be Done Soon</span></button>
+        <button class="chip" data-group="night-laundry" data-val="ok" onclick="toggleRadio(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-t="laundryOk">✅ OK for Now</span></button>
+      </div>
+      <div class="field-label" data-t="laundryNotesLabel">Laundry notes (optional)</div>
+      <textarea id="night-laundry-notes" rows="2" data-ph="laundryNotesPh"></textarea>
+    </div>
+    <!-- Groceries -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">🛒</span><span data-t="groceriesSection">Groceries & Supplies</span></div>
+      <div class="field-label" data-t="groceriesLabel">Any groceries or supplies needed?</div>
+      <textarea id="night-groceries" rows="3" data-ph="groceriesPh"></textarea>
+    </div>
+    <!-- Other -->
+    <div class="section">
+      <div class="section-title"><span class="emoji">📝</span><span data-t="otherSection">Other Relevant Details</span></div>
+      <textarea id="night-other" rows="4" data-ph="otherPh"></textarea>
+    </div>
+    <button class="submit-btn" id="night-submit" onclick="submitForm('night')">🌙 Submit Nighttime Update</button>
+  </div><!-- end night-form -->
+
+</div><!-- end body -->
+
+<script>
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbx4qaYS-SwAZnCzLttHpL0qRZnOJTKgHLEF304ZCdaaRnU6j8FtHbldmnyna7hsD8Vj/exec";
+
+const C = {
+  day: { bg:"#FFFBF5", primary:"#C96A2B", card:"#FFFFFF", text:"#1C1208", muted:"#7A6652", border:"#E8D4BC", tag:"#FEF3E8", headerBg:"#FDF0E0" },
+  night: { bg:"#0D1525", primary:"#6B9FD4", card:"#162035", text:"#E8EFFF", muted:"#7A8FAA", border:"#243250", tag:"#1A2A45", headerBg:"#111D35" }
+};
+
+const T = {
+  en: {
+    appTitle:"Daily Care Update", dayShift:"Daytime Shift", nightShift:"Nighttime Shift",
+    shiftInfo:"Shift Info", date:"Date", aideName:"Aide Name", aideNamePh:"Your name",
+    mentalSection:"Mental Status", mentalRateLabel:"Rate her alertness & clarity",
+    mentalNotesLabel:"Notes (confusion, clarity, lucid moments...)", mentalPh:"e.g. She was alert in the morning but confused after lunch...",
+    moodSection:"Mood", moodRateLabel:"Rate her mood",
+    moodNotesLabel:"Notes (happy, withdrawn, anxious, calm...)", moodPh:"e.g. She was cheerful during lunch but quiet afterward...",
+    mealsSection:"Meals", lunch:"Lunch — what she ate & how much", lunchPh:"e.g. Rice and beans, ate about half...",
+    snacks:"Snacks", snacksPh:"e.g. Banana and crackers around 3pm...",
+    dinner:"Dinner — what she ate & how much", dinnerPh:"e.g. Soup and bread, ate most of it...",
+    breakfast:"Breakfast — what she ate & how much", breakfastPh:"e.g. Oatmeal with banana, ate most of it...",
+    appetiteLabel:"Appetite & fluid intake notes", appetitePh:"e.g. Drank about 4 glasses of water throughout the day...",
+    medTakenSection:"Medication", medTakenLabel:"Did she take her medication?",
+    yes:"✅ Yes", no:"❌ No", refused:"🚫 Refused",
+    medNotesLabel:"Notes (timing, issues, refusals...)", medNotesPh:"e.g. Took morning pills at 9am without issue...",
+    medStatusSection:"Medication Status",
+    medRefillLabel:"List any medications running low or needing refill",
+    medRefillPh:"e.g. Blood pressure medication is almost out... (leave blank if all stocked)",
+    toiletSection:"Toileting", urinationLabel:"Urination — frequency & any issues",
+    urinationPh:"e.g. Urinated 4 times, no issues, no accidents...",
+    bowelLabel:"Bowel movement?", diaperLabel:"Diaper changes (how many & condition)",
+    diaperPh:"e.g. Changed 3 times, normal...", toiletNotesLabel:"Other toileting notes",
+    toiletNotesPh:"Any concerns or unusual observations...",
+    activitiesSection:"Activities", activitiesLabel:"Activities today (select all that apply)",
+    walking:"🚶 Walking", exercise:"💪 Exercise", adultDayCare:"🏛️ Adult Day Care", cityTrips:"🚌 City Trip",
+    activityNotesLabel:"Activity details & duration", activityNotesPh:"e.g. Walked around the block twice, about 20 minutes...",
+    morningActivitiesSection:"Morning Activities", morningActivitiesPh:"e.g. Light stretching, watched TV, sat outside...",
+    sleepSection:"Sleep", bedtimeLabel:"Time she went to bed",
+    wakingsLabel:"Times she woke up during the night",
+    aideWokeLabel:"Times YOU woke her up to use the bathroom",
+    morningWakeLabel:"Time she woke up in the morning",
+    sleepNotesLabel:"Sleep quality notes", sleepNotesPh:"e.g. Restless between 2–4am, asked for water once...",
+    commSection:"Communication", commLevelLabel:"How communicative was she?",
+    silent:"🤫 Silent", minimal:"🔇 Minimal", moderate:"💬 Moderate", talkative:"🗣️ Talkative",
+    commNotesLabel:"What did she talk about? Mood while talking?",
+    commNotesPh:"e.g. Talked about her childhood in the afternoon, seemed happy...",
+    laundrySection:"Laundry Status", laundryLabel:"How is the laundry situation?",
+    laundryNeed:"🧺 Needs to Be Done Soon", laundryOk:"✅ OK for Now",
+    laundryNotesLabel:"Laundry notes (optional)", laundryNotesPh:"e.g. Sheets need washing, running low on clean towels...",
+    groceriesSection:"Groceries & Supplies", groceriesLabel:"Any groceries or supplies needed?",
+    groceriesPh:"e.g. Running low on adult diapers, need more oatmeal and bananas...",
+    otherSection:"Other Relevant Details",
+    otherPh:"Anything else Harrison should know — falls, unusual behavior, visitors, phone calls, concerns...",
+    submitDay:"☀️ Submit Daytime Update", submitNight:"🌙 Submit Nighttime Update",
+    submitting:"Submitting...", successTitle:"Update Submitted!",
+    successMsg:"Thank you. Harrison has been notified.", fillAnother:"Fill Out Another",
+    ratingLabels:["","Poor","Fair","Good","Very Good","Excellent"]
+  },
+  zh: {
+    appTitle:"每日护理更新", dayShift:"白班", nightShift:"夜班",
+    shiftInfo:"班次信息", date:"日期", aideName:"护工姓名", aideNamePh:"请填写您的姓名",
+    mentalSection:"精神状态", mentalRateLabel:"请评估她的警觉性和清醒程度（1-5分）",
+    mentalNotesLabel:"备注（混乱、清醒、清醒时刻...）", mentalPh:"例如：上午很清醒，但午饭后有些糊涂...",
+    moodSection:"情绪", moodRateLabel:"请评估她今天的情绪（1-5分）",
+    moodNotesLabel:"备注（开心、退缩、焦虑、平静...）", moodPh:"例如：午饭时很开心，之后比较安静...",
+    mealsSection:"饮食", lunch:"午餐 — 吃了什么、吃了多少", lunchPh:"例如：米饭和豆子，吃了约一半...",
+    snacks:"零食/点心", snacksPh:"例如：下午3点吃了香蕉和饼干...",
+    dinner:"晚餐 — 吃了什么、吃了多少", dinnerPh:"例如：汤和面包，大部分都吃完了...",
+    breakfast:"早餐 — 吃了什么、吃了多少", breakfastPh:"例如：燕麦粥配香蕉，大部分都吃完了...",
+    appetiteLabel:"食欲及饮水备注", appetitePh:"例如：全天喝了约4杯水...",
+    medTakenSection:"服药情况", medTakenLabel:"她今天服药了吗？",
+    yes:"✅ 是", no:"❌ 否", refused:"🚫 拒绝服药",
+    medNotesLabel:"备注（时间、问题、拒绝服药...）", medNotesPh:"例如：早上9点按时服药，无异常...",
+    medStatusSection:"药品状态",
+    medRefillLabel:"请列出快要用完或需要补充的药品（如无请留空）",
+    medRefillPh:"例如：血压药快用完了，需要在周五前补充...",
+    toiletSection:"如厕情况", urinationLabel:"排尿 — 次数及异常情况",
+    urinationPh:"例如：排尿4次，无异常，无失禁...",
+    bowelLabel:"是否有排便？", diaperLabel:"换尿布次数及状况",
+    diaperPh:"例如：换了3次，正常...", toiletNotesLabel:"其他如厕备注",
+    toiletNotesPh:"任何需要注意的情况...",
+    activitiesSection:"活动", activitiesLabel:"今天的活动（可多选）",
+    walking:"🚶 散步", exercise:"💪 锻炼", adultDayCare:"🏛️ 成人日托", cityTrips:"🚌 外出",
+    activityNotesLabel:"活动详情及时长", activityNotesPh:"例如：下午绕街区走了两圈，约20分钟...",
+    morningActivitiesSection:"早晨活动", morningActivitiesPh:"例如：轻度伸展运动、看电视、坐在门外...",
+    sleepSection:"睡眠情况", bedtimeLabel:"就寝时间",
+    wakingsLabel:"夜间自行醒来次数",
+    aideWokeLabel:"您叫醒她去厕所的次数",
+    morningWakeLabel:"早晨起床时间",
+    sleepNotesLabel:"睡眠质量备注", sleepNotesPh:"例如：凌晨2-4点不安稳，要了一次水...",
+    commSection:"沟通交流", commLevelLabel:"她今天的交流情况如何？",
+    silent:"🤫 沉默", minimal:"🔇 很少说话", moderate:"💬 适量交谈", talkative:"🗣️ 话很多",
+    commNotesLabel:"她谈了什么？交流时的情绪如何？",
+    commNotesPh:"例如：下午聊起了童年往事，看起来很开心...",
+    laundrySection:"洗衣状态", laundryLabel:"目前洗衣情况如何？",
+    laundryNeed:"🧺 需要洗衣（快满了）", laundryOk:"✅ 暂时不需要",
+    laundryNotesLabel:"洗衣备注（可选）", laundryNotesPh:"例如：床单需要清洗，干净毛巾快用完了...",
+    groceriesSection:"食品及用品", groceriesLabel:"是否需要购买食品或用品？",
+    groceriesPh:"例如：成人纸尿裤快用完了，需要更多燕麦和香蕉...",
+    otherSection:"其他重要情况",
+    otherPh:"其他Harrison需要知道的事 — 跌倒、异常行为、访客、电话、任何担忧...",
+    submitDay:"☀️ 提交白班更新", submitNight:"🌙 提交夜班更新",
+    submitting:"正在提交...", successTitle:"更新已提交！",
+    successMsg:"谢谢您。Harrison已收到通知。", fillAnother:"填写新的更新",
+    ratingLabels:["","很差","较差","良好","很好","优秀"]
+  }
+};
+
+let mode = "day";
+let lang = "en";
+const ratings = {}; // key -> selected value
+
+function val(id) { return (document.getElementById(id)||{}).value || ""; }
+function radioVal(group) {
+  const active = document.querySelector(`.chip[data-group="${group}"].active`);
+  return active ? active.dataset.val : "";
+}
+function multiVal(group) {
+  return Array.from(document.querySelectorAll(`.chip[data-group="${group}"].active`))
+    .map(b => b.dataset.val).join(", ");
+}
+
+function toggleRadio(btn) {
+  const group = btn.dataset.group;
+  document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(b => {
+    b.classList.remove("active");
+    applyChipStyle(b, false);
+  });
+  if (!btn.classList.contains("was-active")) {
+    btn.classList.add("active");
+    applyChipStyle(btn, true);
+  }
+  btn.classList.toggle("was-active");
+  setTimeout(() => btn.classList.remove("was-active"), 300);
+}
+
+function toggleMulti(btn) {
+  const on = btn.classList.toggle("active");
+  applyChipStyle(btn, on);
+}
+
+function applyChipStyle(btn, active) {
+  const c = C[mode];
+  btn.style.background = active ? c.primary : c.tag;
+  btn.style.borderColor = active ? c.primary : c.border;
+  btn.style.color = active ? "#fff" : c.text;
+}
+
+function buildRating(containerId, ratingKey) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = "";
+  ratings[ratingKey] = ratings[ratingKey] || 0;
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement("button");
+    btn.className = "rating-btn";
+    btn.dataset.key = ratingKey;
+    btn.dataset.val = i;
+    const t = T[lang];
+    btn.innerHTML = i + (ratings[ratingKey] === i ? `<div class="rating-sub">${t.ratingLabels[i]}</div>` : "");
+    btn.onclick = () => {
+      ratings[ratingKey] = ratings[ratingKey] === i ? 0 : i;
+      buildRating(containerId, ratingKey);
+    };
+    applyRatingStyle(btn, ratings[ratingKey] === i);
+    container.appendChild(btn);
+  }
+}
+
+function applyRatingStyle(btn, active) {
+  const c = C[mode];
+  btn.style.background = active ? c.primary : c.tag;
+  btn.style.borderColor = active ? c.primary : c.border;
+  btn.style.color = active ? "#fff" : c.text;
+}
+
+function applyColors() {
+  const c = C[mode];
+  document.body.style.background = c.bg;
+  document.body.style.color = c.text;
+  const header = document.getElementById("header");
+  header.style.background = c.headerBg;
+  header.style.borderBottom = `1.5px solid ${c.border}`;
+  header.style.boxShadow = mode === "night" ? "0 2px 16px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.07)";
+
+  document.querySelectorAll(".section").forEach(s => {
+    s.style.background = c.card;
+    s.style.border = `1px solid ${c.border}`;
+  });
+  document.querySelectorAll(".section-title").forEach(el => el.style.color = c.primary);
+  document.querySelectorAll(".field-label").forEach(el => el.style.color = c.muted);
+  document.querySelectorAll("textarea, input[type=text], input[type=date], input[type=time], input[type=number]").forEach(el => {
+    el.style.background = c.tag;
+    el.style.border = `1.5px solid ${c.border}`;
+    el.style.color = c.text;
+  });
+  document.querySelectorAll(".chip:not(.active)").forEach(b => applyChipStyle(b, false));
+  document.querySelectorAll(".chip.active").forEach(b => applyChipStyle(b, true));
+
+  // Shift buttons
+  document.querySelectorAll(".shift-btn").forEach(b => {
+    const isActive = b.id === `btn-${mode}`;
+    b.style.background = isActive ? c.primary : "transparent";
+    b.style.color = isActive ? "#fff" : c.muted;
+    b.style.border = "none";
+  });
+  document.getElementById("shift-toggle").style.background = c.tag;
+  document.getElementById("shift-toggle").style.border = `1.5px solid ${c.border}`;
+
+  // Lang buttons
+  document.querySelectorAll(".lang-btn").forEach(b => {
+    const isActive = (b.id === "btn-en" && lang === "en") || (b.id === "btn-zh" && lang === "zh");
+    b.style.background = isActive ? c.primary : "transparent";
+    b.style.color = isActive ? "#fff" : c.muted;
+    b.style.border = "none";
+  });
+  document.getElementById("lang-toggle").style.background = c.tag;
+  document.getElementById("lang-toggle").style.border = `1px solid ${c.border}`;
+
+  // Submit buttons
+  document.querySelectorAll(".submit-btn").forEach(b => {
+    b.style.background = c.primary;
+    b.style.boxShadow = `0 4px 20px ${c.primary}55`;
+  });
+  document.querySelector(".reset-btn").style.background = c.primary;
+  document.getElementById("success-title").style.color = c.text;
+  document.getElementById("success-msg").style.color = c.muted;
+
+  // Rebuild ratings with new colors
+  buildRating("day-mental-rating", "day-mental");
+  buildRating("day-mood-rating", "day-mood");
+  buildRating("night-mental-rating", "night-mental");
+  buildRating("night-mood-rating", "night-mood");
+}
+
+function applyTranslations() {
+  const t = T[lang];
+  document.getElementById("app-title-text").textContent = t.appTitle;
+  document.getElementById("label-day").textContent = t.dayShift;
+  document.getElementById("label-night").textContent = t.nightShift;
+  document.getElementById("success-title").textContent = t.successTitle;
+  document.getElementById("success-msg").textContent = t.successMsg;
+  document.getElementById("reset-btn").textContent = t.fillAnother;
+  document.getElementById("day-submit").textContent = t.submitDay;
+  document.getElementById("night-submit").textContent = t.submitNight;
+  document.querySelector("#success-view .success-emoji").textContent = mode === "day" ? "☀️" : "🌙";
+
+  document.querySelectorAll("[data-t]").forEach(el => {
+    const key = el.dataset.t;
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+  document.querySelectorAll("[data-ph]").forEach(el => {
+    const key = el.dataset.ph;
+    if (t[key] !== undefined) el.placeholder = t[key];
+  });
+  buildRating("day-mental-rating", "day-mental");
+  buildRating("day-mood-rating", "day-mood");
+  buildRating("night-mental-rating", "night-mental");
+  buildRating("night-mood-rating", "night-mood");
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById("day-form").classList.toggle("visible", m === "day");
+  document.getElementById("night-form").classList.toggle("visible", m === "night");
+  document.getElementById("success-view").classList.remove("visible");
+  applyColors();
+}
+
+function setLang(l) {
+  lang = l;
+  applyTranslations();
+  applyColors();
+}
+
+async function submitForm(shift) {
+  const t = T[lang];
+  const btn = document.getElementById(`${shift}-submit`);
+  btn.disabled = true;
+  btn.textContent = t.submitting;
+
+  const data = shift === "day" ? {
+    shift: "Day",
+    language: lang === "en" ? "English" : "Chinese",
+    date: val("day-date"),
+    aideName: val("day-aide"),
+    mentalStatus: ratings["day-mental"] || "",
+    mentalNotes: val("day-mental-notes"),
+    mood: ratings["day-mood"] || "",
+    moodNotes: val("day-mood-notes"),
+    lunch: val("day-lunch"),
+    snacks: val("day-snacks"),
+    dinner: val("day-dinner"),
+    breakfast: "",
+    appetiteNotes: val("day-appetite"),
+    medicationTaken: radioVal("day-medtaken"),
+    medicationNotes: val("day-med-notes"),
+    medRefillNotes: val("day-med-refill"),
+    urination: val("day-urination"),
+    bowelMovement: radioVal("day-bowel"),
+    diaperChanges: val("day-diapers"),
+    toiletingNotes: val("day-toilet-notes"),
+    activities: multiVal("day-activities"),
+    activityNotes: val("day-activity-notes"),
+    morningActivities: "",
+    bedtime: "", wakings: "", aideWokeCount: "", morningWakeTime: "", sleepNotes: "",
+    communicationLevel: radioVal("day-comm"),
+    communicationNotes: val("day-comm-notes"),
+    laundryStatus: radioVal("day-laundry"),
+    laundryNotes: val("day-laundry-notes"),
+    groceriesNeeded: val("day-groceries"),
+    otherDetails: val("day-other"),
+  } : {
+    shift: "Night",
+    language: lang === "en" ? "English" : "Chinese",
+    date: val("night-date"),
+    aideName: val("night-aide"),
+    mentalStatus: ratings["night-mental"] || "",
+    mentalNotes: val("night-mental-notes"),
+    mood: ratings["night-mood"] || "",
+    moodNotes: val("night-mood-notes"),
+    lunch: "", snacks: "", dinner: "",
+    breakfast: val("night-breakfast"),
+    appetiteNotes: val("night-appetite"),
+    medicationTaken: radioVal("night-medtaken"),
+    medicationNotes: val("night-med-notes"),
+    medRefillNotes: val("night-med-refill"),
+    urination: val("night-urination"),
+    bowelMovement: radioVal("night-bowel"),
+    diaperChanges: val("night-diapers"),
+    toiletingNotes: val("night-toilet-notes"),
+    activities: "",
+    activityNotes: "",
+    morningActivities: val("night-morning-activities"),
+    bedtime: val("night-bedtime"),
+    wakings: val("night-wakings"),
+    aideWokeCount: val("night-aide-woke"),
+    morningWakeTime: val("night-wake-time"),
+    sleepNotes: val("night-sleep-notes"),
+    communicationLevel: radioVal("night-comm"),
+    communicationNotes: val("night-comm-notes"),
+    laundryStatus: radioVal("night-laundry"),
+    laundryNotes: val("night-laundry-notes"),
+    groceriesNeeded: val("night-groceries"),
+    otherDetails: val("night-other"),
+  };
+
+  try {
+    const fd = new FormData();
+    fd.append("data", JSON.stringify(data));
+    await fetch(SHEET_URL, { method: "POST", body: fd, mode: "no-cors" });
+  } catch(e) { /* fail silently */ }
+
+  btn.disabled = false;
+  btn.textContent = shift === "day" ? t.submitDay : t.submitNight;
+  document.getElementById(`${shift}-form`).classList.remove("visible");
+  const sv = document.getElementById("success-view");
+  sv.classList.add("visible");
+  document.querySelector("#success-view .success-emoji").textContent = shift === "day" ? "☀️" : "🌙";
+  document.getElementById("success-title").textContent = t.successTitle;
+  document.getElementById("success-msg").textContent = t.successMsg;
+  document.getElementById("reset-btn").textContent = t.fillAnother;
+}
+
+function resetForm() {
+  document.getElementById("success-view").classList.remove("visible");
+  document.querySelectorAll("textarea").forEach(t => t.value = "");
+  document.querySelectorAll("input[type=date], input[type=time], input[type=number]").forEach(i => i.value = "");
+  document.querySelectorAll(".chip.active").forEach(b => { b.classList.remove("active"); applyChipStyle(b, false); });
+  Object.keys(ratings).forEach(k => ratings[k] = 0);
+  buildRating("day-mental-rating", "day-mental");
+  buildRating("day-mood-rating", "day-mood");
+  buildRating("night-mental-rating", "night-mental");
+  buildRating("night-mood-rating", "night-mood");
+  setMode(mode);
+}
+
+// Set today's date
+function setDates() {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("day-date").value = today;
+  document.getElementById("night-date").value = today;
+}
+
+// Init
+setDates();
+setMode("day");
+applyTranslations();
+</script>
+</body>
+</html>
